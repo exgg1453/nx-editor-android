@@ -19,6 +19,12 @@ class SettingsStore(context: Context) {
             preferences.edit().putString(KEY_MODEL, value).apply()
         }
 
+    var visionModel: String
+        get() = preferences.getString(KEY_VISION_MODEL, DEFAULT_VISION_MODEL) ?: DEFAULT_VISION_MODEL
+        set(value) {
+            preferences.edit().putString(KEY_VISION_MODEL, value).apply()
+        }
+
     var baseUrl: String
         get() = preferences.getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
         set(value) {
@@ -34,9 +40,11 @@ class SettingsStore(context: Context) {
     companion object {
         private const val KEY_API_KEY = "api_key"
         private const val KEY_MODEL = "model"
+        private const val KEY_VISION_MODEL = "vision_model"
         private const val KEY_BASE_URL = "base_url"
         private const val KEY_SYSTEM_PROMPT = "system_prompt"
         private const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
+        private const val DEFAULT_VISION_MODEL = "qwen/qwen3.8-27b"
         private const val DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
         private const val DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
     }

@@ -1,6 +1,5 @@
 package com.nxteam.nxeditor.data
 
-import com.nxteam.nxeditor.model.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -11,12 +10,18 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class OutgoingMessage(
+    val role: String,
+    val text: String,
+    val images: List<String>
+)
+
 class ChatService(
     private val apiKey: String,
     private val baseUrl: String,
     private val model: String
 ) {
-    suspend fun send(systemPrompt: String, history: List<Message>): String = withContext(Dispatchers.IO) {
+    suspend fun send(messages: List<OutgoingMessage>): String = withContext(Dispatchers.IO) {
         val key = apiKey.trim()
         require(key.isNotEmpty()) { "Please add your Groq API key in Settings." }
 
@@ -27,14 +32,29 @@ class ChatService(
         connection.setRequestProperty("Authorization", "Bearer $key")
         connection.doOutput = true
 
-        val messages = JSONArray()
-        messages.put(JSONObject().put("role", "system").put("content", systemPrompt))
-        for (message in history) {
-            messages.put(JSONObject().put("role", message.role).put("content", message.text))
+        val messagesArray = JSONArray()
+        for (message in messages) {
+            val messageObject = JSONObject().put("role", message.role)
+            if (message.images.isEmpty()) {
+                messageObject.put("content", message.text)
+            } else {
+                val parts = JSONArray()
+                parts.put(JSONObject().put("type", "text").put("text", message.text))
+                for (imageUrl in message.images) {
+                    parts.put(
+                        JSONObject()
+                            .put("type", "image_url")
+                            .put("image_url", JSONObject().put("url", imageUrl))
+                    )
+                }
+                messageObject.put("content", parts)
+            }
+            messagesArray.put(messageObject)
         }
+
         val body = JSONObject()
             .put("model", model)
-            .put("messages", messages)
+            .put("messages", messagesArray)
             .put("temperature", 0.7)
 
         OutputStreamWriter(connection.outputStream).use { writer ->

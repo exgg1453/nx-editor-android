@@ -27,6 +27,7 @@ import com.nxteam.nxeditor.data.SettingsStore
 fun SettingsScreen(settings: SettingsStore, modifier: Modifier = Modifier) {
     var apiKey by remember { mutableStateOf(settings.apiKey) }
     var model by remember { mutableStateOf(settings.model) }
+    var visionModel by remember { mutableStateOf(settings.visionModel) }
     var baseUrl by remember { mutableStateOf(settings.baseUrl) }
     var systemPrompt by remember { mutableStateOf(settings.systemPrompt) }
 
@@ -65,6 +66,21 @@ fun SettingsScreen(settings: SettingsStore, modifier: Modifier = Modifier) {
             label = { Text("Model") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = visionModel,
+            onValueChange = {
+                visionModel = it
+                settings.visionModel = it
+            },
+            label = { Text("Vision Model") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            "Used automatically when you attach a photo or video frame.",
+            style = MaterialTheme.typography.bodySmall
         )
 
         OutlinedTextField(
