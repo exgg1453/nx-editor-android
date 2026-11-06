@@ -1,6 +1,7 @@
 package com.nxteam.nxeditor.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -16,12 +17,32 @@ data class OutgoingMessage(
     val images: List<String>
 )
 
+private class TransientException(message: String) : RuntimeException(message)
+
 class ChatService(
     private val apiKey: String,
     private val baseUrl: String,
     private val model: String
 ) {
-    suspend fun send(messages: List<OutgoingMessage>): String = withContext(Dispatchers.IO) {
+    private val maxAttempts = 4
+
+    suspend fun send(messages: List<OutgoingMessage>): String {
+        var attempt = 0
+        while (true) {
+            try {
+                return performRequest(messages)
+            } catch (error: TransientException) {
+                attempt += 1
+                if (attempt >= maxAttempts) {
+                    throw RuntimeException(error.message)
+                }
+                val seconds = Math.pow(2.0, (attempt - 1).toDouble())
+                delay((seconds * 1000).toLong())
+            }
+        }
+    }
+
+    private suspend fun performRequest(messages: List<OutgoingMessage>): String = withContext(Dispatchers.IO) {
         val key = apiKey.trim()
         require(key.isNotEmpty()) { "Please add your Groq API key in Settings." }
 
@@ -69,6 +90,9 @@ class ChatService(
         connection.disconnect()
 
         if (status !in 200..299) {
+            if (status == 429 || status in 500..599) {
+                throw TransientException(responseText)
+            }
             throw RuntimeException(responseText)
         }
 
